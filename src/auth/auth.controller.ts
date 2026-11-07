@@ -68,7 +68,7 @@ export class AuthController {
     res.cookie(REFRESH_COOKIE, token, {
       httpOnly: true,
       secure: isProd,
-      sameSite: 'lax',
+      sameSite: isProd ? 'none' : 'lax', 
       path: '/api/auth',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
