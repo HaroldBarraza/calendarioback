@@ -3,18 +3,17 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
-import { createRequire } from 'node:module';
 import { AppModule } from './app.module.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
-
-// ─── helmet: carga robusta en ESM (Vercel-safe) ───
-const require = createRequire(import.meta.url);
-const helmetFn = require('helmet') as (options?: Record<string, unknown>) => unknown;
-// ─────────────────────────────────────────────────
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
+
+  // ─── helmet: import dinámico (evita TS2349 en Vercel) ───
+  const helmetModule = await import('helmet');
+  const helmetFn = helmetModule.default;
+  // ────────────────────────────────────────────────────────
 
   app.use(helmetFn());
   app.use(cookieParser());
