@@ -1,0 +1,133 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  PLANNER
+  VIEWER
+}
+
+enum ActivityStatus {
+  PLANNED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+// ─────────────────────────────────────────────
+// USUARIOS
+// ─────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  fullName     String   @map("full_name") @db.VarChar(180)
+  role         Role     @default(VIEWER)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  activitiesCreated Activity[] @relation("ActivityCreatedBy")
+  activitiesUpdated Activity[] @relation("ActivityUpdatedBy")
+
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// CATÁLOGOS
+// ─────────────────────────────────────────────
+
+model Organization {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String   @unique @db.VarChar(180)
+  description  String?  @db.Text
+  contactName  String?  @map("contact_name") @db.VarChar(180)
+  contactPhone String?  @map("contact_phone") @db.VarChar(30)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  activities Activity[]
+
+  @@map("organizations")
+}
+
+model Neighborhood {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(180)
+  description String?  @db.Text
+  reference   String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  activities Activity[]
+
+  @@map("neighborhoods")
+}
+
+model Place {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(180)
+  address     String   @db.VarChar(255)
+  reference   String?  @db.Text
+  description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  activities Activity[]
+
+  @@unique([name, address])
+  @@map("places")
+}
+
+// ─────────────────────────────────────────────
+// ACTIVIDADES
+// ─────────────────────────────────────────────
+
+model Activity {
+  id             String         @id @default(uuid()) @db.Uuid
+  name           String         @db.VarChar(180)
+  description    String?        @db.Text
+  activityDate   DateTime       @map("activity_date") @db.Date
+  timeDefined    Boolean        @map("time_defined")
+  startTime      DateTime?      @map("start_time") @db.Time
+  status         ActivityStatus @default(PLANNED)
+  observations   String?        @db.Text
+  placeId        String         @map("place_id") @db.Uuid
+  organizationId String         @map("organization_id") @db.Uuid
+  neighborhoodId String         @map("neighborhood_id") @db.Uuid
+  createdBy      String         @map("created_by") @db.Uuid
+  updatedBy      String?        @map("updated_by") @db.Uuid
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt      DateTime?      @map("deleted_at") @db.Timestamptz
+
+  place        Place        @relation(fields: [placeId], references: [id], onDelete: Restrict)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  neighborhood Neighborhood @relation(fields: [neighborhoodId], references: [id], onDelete: Restrict)
+  creator      User         @relation("ActivityCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  updater      User?        @relation("ActivityUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+
+  @@index([activityDate])
+  @@index([startTime])
+  @@index([organizationId])
+  @@index([neighborhoodId])
+  @@index([placeId])
+  @@index([status])
+  @@index([activityDate, startTime])
+  @@index([deletedAt])
+  @@map("activities")
+}
