@@ -3,27 +3,28 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
-import helmet from 'helmet';
+import { createRequire } from 'node:module';
 import { AppModule } from './app.module.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
+
+// ─── helmet: carga robusta en ESM (Vercel-safe) ───
+const require = createRequire(import.meta.url);
+const helmetFn = require('helmet') as (options?: Record<string, unknown>) => unknown;
+// ─────────────────────────────────────────────────
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
-  // 1. Seguridad base y cookies
-  app.use(helmet());
+  app.use(helmetFn());
   app.use(cookieParser());
   app.setGlobalPrefix('api');
 
-  // 2. CORS para el frontend
   app.enableCors({
     origin: configService.get<string[]>('corsOrigin'),
     credentials: true,
   });
 
-
-  // 4. Pipes globales (una sola vez)
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -32,10 +33,8 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  // 5. Filtro global de excepciones
   app.useGlobalFilters(new AllExceptionsFilter());
 
-  // 6. Swagger
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Sistema de Planificación 2027')
     .setDescription('API para la gestión de actividades del año 2027')
@@ -47,19 +46,12 @@ async function bootstrap(): Promise<void> {
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('docs', app, document, { useGlobalPrefix: true });
 
-  // 3. Configura Swagger CON la opción useGlobalPrefix: true
-  SwaggerModule.setup('docs', app, document, {
-    useGlobalPrefix: true,
-  });
-
-  // 7. Escuchar
   const port = configService.get<number>('port') ?? 3001;
   await app.listen(port);
   Logger.log(`API escuchando en http://localhost:${port}/api`, 'Bootstrap');
   Logger.log(`Swagger UI en http://localhost:${port}/api/docs`, 'Bootstrap');
-  console.log(`API escuchando en http://localhost:${port}/api`, 'Bootstrap');
-  console.log(`Swagger UI en http://localhost:${port}/api/docs`, 'Bootstrap');
 }
 
 void bootstrap();
