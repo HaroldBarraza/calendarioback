@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsEnum, IsOptional, IsUUID } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsBoolean, IsDateString, IsEnum, IsOptional, IsUUID } from 'class-validator';
 import { ActivityStatus } from '../../generated/prisma/client.js';
 
 export class ReportQueryDto {
@@ -32,4 +33,10 @@ export class ReportQueryDto {
   @IsEnum(ActivityStatus)
   @IsOptional()
   status?: ActivityStatus;
+
+  @ApiPropertyOptional({ description: 'Filtrar por modalidad de horario' })
+  @Type(() => Boolean)
+  @IsBoolean()
+  @IsOptional()
+  timeDefined?: boolean;
 }

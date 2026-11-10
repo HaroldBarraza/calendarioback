@@ -35,7 +35,7 @@ async function bootstrap(): Promise<void> {
   app.useGlobalFilters(new AllExceptionsFilter());
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Sistema de Planificación 2027')
+    .setTitle('Calendario de Actividades Estaca Bellavista 2027')
     .setDescription('API para la gestión de actividades del año 2027')
     .setVersion('1.0.0')
     .addBearerAuth()
