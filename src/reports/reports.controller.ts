@@ -1,10 +1,5 @@
 import { Controller, Get, Query, Res } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiProduces,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { ReportsService } from './reports.service.js';
 import { ReportQueryDto } from './dto/report-query.dto.js';
@@ -17,10 +12,7 @@ export class ReportsController {
 
   @Get('activities.pdf')
   @ApiProduces('application/pdf')
-  @ApiOperation({
-    summary:
-      'Descargar reporte PDF de actividades (respeta filtros y permisos)',
-  })
+  @ApiOperation({ summary: 'Descargar reporte PDF (por trimestres y meses)' })
   async activitiesPdf(
     @Query() query: ReportQueryDto,
     @Res() res: Response,
@@ -34,14 +26,10 @@ export class ReportsController {
     });
     res.end(buffer);
   }
+
   @Get('activities.xlsx')
-  @ApiProduces(
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  )
-  @ApiOperation({
-    summary:
-      'Descargar reporte Excel de actividades (dividido por trimestres y meses)',
-  })
+  @ApiProduces('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  @ApiOperation({ summary: 'Descargar reporte Excel (por trimestres y meses)' })
   async activitiesExcel(
     @Query() query: ReportQueryDto,
     @Res() res: Response,

@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -25,7 +28,7 @@ export class ActivitiesController {
   constructor(private readonly service: ActivitiesService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Listar actividades (filtros, paginación, soft delete opcional)' })
+  @ApiOperation({ summary: 'Listar actividades (filtros, paginación)' })
   findAll(@Query() query: QueryActivitiesDto) {
     return this.service.findAll(query);
   }
@@ -33,7 +36,7 @@ export class ActivitiesController {
   @Get(':id')
   @ApiOperation({ summary: 'Obtener actividad por ID' })
   findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.service.findById(id);
+    return this.service.findById(id, true);
   }
 
   @Post()
@@ -56,15 +59,41 @@ export class ActivitiesController {
 
   @Patch(':id/delete')
   @Roles(Role.ADMIN, Role.PLANNER)
-  @ApiOperation({ summary: 'Eliminar lógicamente una actividad (ADMIN, PLANNER)' })
-  softDelete(@Param('id', new ParseUUIDPipe()) id: string, @CurrentUser() user: AuthUser) {
+  @ApiOperation({ summary: 'Eliminar lógicamente (soft delete)' })
+  softDelete(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser() user: AuthUser,
+  ) {
     return this.service.softDelete(id, user);
   }
 
   @Patch(':id/restore')
   @Roles(Role.ADMIN, Role.PLANNER)
-  @ApiOperation({ summary: 'Restaurar actividad eliminada (ADMIN, PLANNER)' })
-  restore(@Param('id', new ParseUUIDPipe()) id: string, @CurrentUser() user: AuthUser) {
+  @ApiOperation({ summary: 'Restaurar actividad eliminada' })
+  restore(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser() user: AuthUser,
+  ) {
     return this.service.restore(id, user);
+  }
+
+  @Delete(':id/purge')
+  @Roles(Role.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Eliminar permanentemente una actividad (solo ADMIN, no se puede deshacer)',
+  })
+  purge(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.service.purge(id);
+  }
+
+  @Post('purge-all')
+  @Roles(Role.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Eliminar TODAS las actividades permanentemente (solo ADMIN)',
+  })
+  purgeAll() {
+    return this.service.purgeAll();
   }
 }

@@ -213,6 +213,17 @@ export class ActivitiesService {
     });
   }
 
+  async purge(id: string): Promise<{ deleted: boolean }> {
+    const activity = await this.prisma.activity.findUnique({ where: { id } });
+    if (!activity) throw new NotFoundException('Actividad no encontrada');
+    await this.prisma.activity.delete({ where: { id } });
+    return { deleted: true };
+  }
+
+  async purgeAll(): Promise<{ deleted: number }> {
+    const result = await this.prisma.activity.deleteMany({});
+    return { deleted: result.count };
+  }
   // ───────────────────────── helpers privados ─────────────────────────
 
   private assertPlanningYear(date: Date): void {
