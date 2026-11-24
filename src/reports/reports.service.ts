@@ -5,6 +5,7 @@ import { PLANNING_YEAR } from '../config/configuration.js';
 import { ActivityStatus, Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ReportQueryDto } from './dto/report-query.dto.js';
+import ExcelJS from 'exceljs';
 
 const require = createRequire(import.meta.url);
 
@@ -33,8 +34,18 @@ const STATUS_LABEL: Record<ActivityStatus, string> = {
 };
 
 const MONTHS_ES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
 ];
 const WEEKDAYS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
@@ -65,10 +76,12 @@ export class ReportsService {
   async generateActivitiesPdf(query: ReportQueryDto): Promise<Buffer> {
     const activities = await this.fetchActivities(query);
     const filtersLabel = await this.describeFilters(query);
-    const now = new Date().toLocaleString('es-PE', { timeZone: 'America/Lima' });
+    const now = new Date().toLocaleString('es-PE', {
+      timeZone: 'America/Lima',
+    });
 
     // Agrupar por mes (0-11)
-    const byMonth: typeof activities[] = Array.from({ length: 12 }, () => []);
+    const byMonth: (typeof activities)[] = Array.from({ length: 12 }, () => []);
     for (const a of activities) {
       const m = new Date(a.activityDate).getUTCMonth();
       byMonth[m].push(a);
@@ -76,7 +89,10 @@ export class ReportsService {
 
     // Contadores
     const statusCounts: Record<ActivityStatus, number> = {
-      PLANNED: 0, CONFIRMED: 0, COMPLETED: 0, CANCELLED: 0,
+      PLANNED: 0,
+      CONFIRMED: 0,
+      COMPLETED: 0,
+      CANCELLED: 0,
     };
     for (const a of activities) statusCounts[a.status]++;
     const withTime = activities.filter((a) => a.timeDefined).length;
@@ -86,11 +102,18 @@ export class ReportsService {
     // Contenido del PDF
     // ───────────────────────────────────────
     const content: object[] = [
-      { text: `Calendario Actividades Estaca Bellavista ${PLANNING_YEAR}`, style: 'title' },
+      {
+        text: `Calendario Actividades Estaca Bellavista ${PLANNING_YEAR}`,
+        style: 'title',
+      },
       { text: 'Reporte de Actividades por Trimestre', style: 'subtitle' },
       { text: `Generado: ${now}`, style: 'meta' },
       { text: `Filtros: ${filtersLabel}`, style: 'meta' },
-      { text: `Total: ${activities.length} actividad(es)`, style: 'meta', margin: [0, 0, 0, 12] },
+      {
+        text: `Total: ${activities.length} actividad(es)`,
+        style: 'meta',
+        margin: [0, 0, 0, 12],
+      },
     ];
 
     if (activities.length === 0) {
@@ -103,7 +126,10 @@ export class ReportsService {
       let firstQuarterRendered = false;
 
       for (const q of QUARTERS) {
-        const quarterTotal = q.months.reduce((n, m) => n + byMonth[m].length, 0);
+        const quarterTotal = q.months.reduce(
+          (n, m) => n + byMonth[m].length,
+          0,
+        );
         if (quarterTotal === 0) continue;
 
         content.push({
@@ -141,9 +167,10 @@ export class ReportsService {
                   const dd = String(d.getUTCDate()).padStart(2, '0');
                   const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
                   const weekday = WEEKDAYS_ES[d.getUTCDay()];
-                  const hora = a.timeDefined && a.startTime
-                    ? a.startTime.toISOString().slice(11, 16)
-                    : '—';
+                  const hora =
+                    a.timeDefined && a.startTime
+                      ? a.startTime.toISOString().slice(11, 16)
+                      : '—';
                   return [
                     `${dd}/${mm}`,
                     weekday,
@@ -185,7 +212,12 @@ export class ReportsService {
       content,
       styles: {
         title: { fontSize: 18, bold: true, margin: [0, 0, 0, 2] },
-        subtitle: { fontSize: 12, bold: true, color: '#475569', margin: [0, 0, 0, 8] },
+        subtitle: {
+          fontSize: 12,
+          bold: true,
+          color: '#475569',
+          margin: [0, 0, 0, 8],
+        },
         meta: { fontSize: 9, color: '#64748b' },
         quarter: {
           fontSize: 14,
@@ -218,7 +250,9 @@ export class ReportsService {
       ...(query.neighborhoodId ? { neighborhoodId: query.neighborhoodId } : {}),
       ...(query.placeId ? { placeId: query.placeId } : {}),
       ...(query.status ? { status: query.status } : {}),
-      ...(query.timeDefined !== undefined ? { timeDefined: query.timeDefined } : {}),
+      ...(query.timeDefined !== undefined
+        ? { timeDefined: query.timeDefined }
+        : {}),
       ...(query.dateFrom || query.dateTo
         ? {
             activityDate: {
@@ -243,7 +277,9 @@ export class ReportsService {
   private async describeFilters(query: ReportQueryDto): Promise<string> {
     const parts: string[] = [];
     if (query.dateFrom || query.dateTo) {
-      parts.push(`Fechas: ${query.dateFrom ?? 'inicio'} → ${query.dateTo ?? 'fin'}`);
+      parts.push(
+        `Fechas: ${query.dateFrom ?? 'inicio'} → ${query.dateTo ?? 'fin'}`,
+      );
     }
     if (query.status) parts.push(`Estado: ${STATUS_LABEL[query.status]}`);
     if (query.timeDefined !== undefined) {
@@ -251,23 +287,28 @@ export class ReportsService {
     }
     if (query.organizationId) {
       const o = await this.prisma.organization.findUnique({
-        where: { id: query.organizationId }, select: { name: true },
+        where: { id: query.organizationId },
+        select: { name: true },
       });
       parts.push(`Organización: ${o?.name ?? query.organizationId}`);
     }
     if (query.neighborhoodId) {
       const n = await this.prisma.neighborhood.findUnique({
-        where: { id: query.neighborhoodId }, select: { name: true },
+        where: { id: query.neighborhoodId },
+        select: { name: true },
       });
       parts.push(`Barrio: ${n?.name ?? query.neighborhoodId}`);
     }
     if (query.placeId) {
       const p = await this.prisma.place.findUnique({
-        where: { id: query.placeId }, select: { name: true },
+        where: { id: query.placeId },
+        select: { name: true },
       });
       parts.push(`Lugar: ${p?.name ?? query.placeId}`);
     }
-    return parts.length ? parts.join('  |  ') : 'Ninguno (todas las actividades)';
+    return parts.length
+      ? parts.join('  |  ')
+      : 'Ninguno (todas las actividades)';
   }
 
   private render(docDefinition: unknown): Promise<Buffer> {
@@ -284,5 +325,195 @@ export class ReportsService {
         reject(err);
       }
     });
+  }
+  async generateActivitiesExcel(query: ReportQueryDto): Promise<Buffer> {
+    const activities = await this.fetchActivities(query);
+    const now = new Date().toLocaleString('es-PE', {
+      timeZone: 'America/Lima',
+    });
+
+    // Agrupar por mes (0-11)
+    const byMonth: (typeof activities)[] = Array.from({ length: 12 }, () => []);
+    for (const a of activities) {
+      const m = new Date(a.activityDate).getUTCMonth();
+      byMonth[m].push(a);
+    }
+
+    const QUARTERS_EXCEL = [
+      {
+        name: 'Q1 Enero-Marzo',
+        months: [0, 1, 2],
+        label: 'Primer Trimestre · Enero a Marzo',
+      },
+      {
+        name: 'Q2 Abril-Junio',
+        months: [3, 4, 5],
+        label: 'Segundo Trimestre · Abril a Junio',
+      },
+      {
+        name: 'Q3 Julio-Septiembre',
+        months: [6, 7, 8],
+        label: 'Tercer Trimestre · Julio a Septiembre',
+      },
+      {
+        name: 'Q4 Octubre-Diciembre',
+        months: [9, 10, 11],
+        label: 'Cuarto Trimestre · Octubre a Diciembre',
+      },
+    ];
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Sistema de Planificación 2027';
+    workbook.created = new Date();
+
+    for (const q of QUARTERS_EXCEL) {
+      const quarterTotal = q.months.reduce((n, m) => n + byMonth[m].length, 0);
+      if (quarterTotal === 0) continue;
+
+      const sheet = workbook.addWorksheet(q.name, {
+        views: [{ state: 'frozen', ySplit: 1 }],
+        properties: { tabColor: { argb: 'FF1D4ED8' } },
+      });
+
+      sheet.columns = [
+        { key: 'fecha', width: 14 },
+        { key: 'dia', width: 10 },
+        { key: 'actividad', width: 45 },
+        { key: 'hora', width: 10 },
+        { key: 'org', width: 26 },
+        { key: 'barrio', width: 20 },
+        { key: 'estado', width: 15 },
+        { key: 'obs', width: 50 },
+      ];
+
+      let currentRow = 1;
+
+      // Título del trimestre
+      sheet.mergeCells(`A${currentRow}:H${currentRow}`);
+      const titleCell = sheet.getCell(`A${currentRow}`);
+      titleCell.value = `Sistema de Planificación 2027 · ${q.label}`;
+      titleCell.font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+      titleCell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF1E293B' },
+      };
+      titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+      sheet.getRow(currentRow).height = 28;
+      currentRow++;
+
+      // Subtítulo: total del trimestre + fecha de generación
+      sheet.mergeCells(`A${currentRow}:H${currentRow}`);
+      const subCell = sheet.getCell(`A${currentRow}`);
+      subCell.value = `Total del trimestre: ${quarterTotal} actividad(es)  ·  Generado: ${now}`;
+      subCell.font = { size: 10, color: { argb: 'FF64748B' }, italic: true };
+      subCell.alignment = { vertical: 'middle', horizontal: 'center' };
+      sheet.getRow(currentRow).height = 18;
+      currentRow += 2;
+
+      // Cada mes
+      for (const mIdx of q.months) {
+        const monthActs = byMonth[mIdx];
+        if (monthActs.length === 0) continue;
+
+        // Encabezado del mes
+        sheet.mergeCells(`A${currentRow}:H${currentRow}`);
+        const monthCell = sheet.getCell(`A${currentRow}`);
+        monthCell.value = `${MONTHS_ES[mIdx]} 2027  ·  ${monthActs.length} actividad(es)`;
+        monthCell.font = { bold: true, size: 12, color: { argb: 'FF1D4ED8' } };
+        monthCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFDBEAFE' },
+        };
+        monthCell.alignment = {
+          vertical: 'middle',
+          horizontal: 'left',
+          indent: 1,
+        };
+        sheet.getRow(currentRow).height = 22;
+        currentRow++;
+
+        // Cabeceras de la tabla
+        const headerRow = sheet.getRow(currentRow);
+        const headers = [
+          'Fecha',
+          'Día',
+          'Actividad',
+          'Hora',
+          'Organización',
+          'Barrio',
+          'Estado',
+          'Observaciones',
+        ];
+        headers.forEach((h, i) => {
+          const cell = headerRow.getCell(i + 1);
+          cell.value = h;
+          cell.font = { bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF475569' },
+          };
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FF334155' } },
+            bottom: { style: 'thin', color: { argb: 'FF334155' } },
+            left: { style: 'thin', color: { argb: 'FF334155' } },
+            right: { style: 'thin', color: { argb: 'FF334155' } },
+          };
+        });
+        sheet.getRow(currentRow).height = 20;
+        currentRow++;
+
+        // Filas del mes
+        for (const a of monthActs) {
+          const d = new Date(a.activityDate);
+          const dd = String(d.getUTCDate()).padStart(2, '0');
+          const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+          const weekday = WEEKDAYS_ES[d.getUTCDay()];
+          const hora =
+            a.timeDefined && a.startTime
+              ? a.startTime.toISOString().slice(11, 16)
+              : '—';
+
+          const row = sheet.getRow(currentRow);
+          row.values = [
+            `${dd}/${mm}/${d.getUTCFullYear()}`,
+            weekday,
+            a.name,
+            hora,
+            a.organization.name,
+            a.neighborhood.name,
+            STATUS_LABEL[a.status],
+            a.description ?? '',
+          ];
+          row.eachCell({ includeEmpty: true }, (cell) => {
+            cell.border = {
+              top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            };
+            cell.alignment = { vertical: 'middle', wrapText: true };
+            cell.font = { size: 10 };
+          });
+          row.height = 18;
+          currentRow++;
+        }
+
+        currentRow++; // Espacio entre meses
+      }
+    }
+
+    // Si no hay actividades, igual generamos un Excel con un mensaje
+    if (workbook.worksheets.length === 0) {
+      const sheet = workbook.addWorksheet('Sin resultados');
+      sheet.getCell('A1').value = 'Sin actividades para los filtros aplicados.';
+      sheet.getCell('A1').font = { bold: true, size: 14 };
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
   }
 }

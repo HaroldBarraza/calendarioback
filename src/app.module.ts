@@ -19,6 +19,7 @@ import { ConflictsModule } from './conflicts/conflicts.module.js';
 import { ReportsService } from './reports/reports.service.js';
 import { ReportsController } from './reports/reports.controller.js';
 import { ReportsModule } from './reports/reports.module.js';
+import { ResportService } from './resport/resport.service.js';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { ReportsModule } from './reports/reports.module.js';
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
     ReportsService,
+    ResportService,
   ],
 })
 export class AppModule {}
